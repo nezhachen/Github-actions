@@ -24,13 +24,15 @@ jobs:
       - name: Make dummy change
         run: |
           echo "Update at $(date)" >> DUMMY.md
+          git config --global user.name "le0623"
+          git config --global user.email "leonel.lasso210@gmail.com"
+          branch="auto-pr-$(date +%s)"
+          git checkout -b $branch
+          git add DUMMY.md
+          git commit -m "chore: auto update $(date)"
+          git push origin $branch
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ github.token }}
-          commit-message: "chore: auto update"
-          branch: auto-pr-$(date +%s)
-          base: main
-          title: "chore: auto update"
-          body: "Automated PR to keep activity going"
-          delete-branch: true 
+        run: |
+          gh pr create --title "chore: auto update" --body "Automated PR to keep activity going" --base main --head $branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }} 
