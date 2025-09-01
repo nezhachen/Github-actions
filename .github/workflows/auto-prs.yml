@@ -12,27 +12,39 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ github.token }}
+      - uses: actions/checkout@v5
       # - name: Random delay
       #   run: |
       #     # Random delay between 30 minutes and 4 hours
       #     delay_minutes=$((RANDOM % 210 + 30))
       #     echo "Waiting $delay_minutes minutes before creating PR..."
       #     sleep $((delay_minutes * 60))
-      - name: Make dummy change
+      - name: Make changes to pull request
         run: |
           echo "Update at $(date)" >> DUMMY.md
-          git config --global user.name "le0623"
-          git config --global user.email "leonel.lasso210@gmail.com"
-          branch="auto-pr-$(date +%s)"
-          git checkout -b $branch
-          git add DUMMY.md
-          git commit -m "chore: auto update $(date)"
-          git push origin $branch
+
       - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          commit-message: "chore: auto update $(date)"
+          committer: le0623 <leonel.lasso210@gmail.com>
+          author: le0623 <leonel.lasso210@gmail.com>
+          branch: auto-pr
+          base: main
+          title: "chore: auto update"
+          body: "Automated PR to keep activity going"
+          delete-branch: true
+
+      - name: Check output
         run: |
-          gh pr create --title "chore: auto update" --body "Automated PR to keep activity going" --base main --head $branch
-        env:
-          GITHUB_TOKEN: ${{ github.token }} 
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+
+      - name: Add reaction
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          reaction-type: hooray

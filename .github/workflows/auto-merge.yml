@@ -11,7 +11,7 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
     steps:
-      - uses: pascalgn/automerge-action@v0.16.4
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          MERGE_METHOD: squash 
+      - uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
