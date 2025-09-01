@@ -1,7 +1,7 @@
 name: Auto PR Generator
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes
+    - cron: "0 9-17 * * 1-6"   # Weekdays 9 AM to 5 PM, excluding Sunday
   workflow_dispatch:
 
 permissions:
@@ -15,6 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ github.token }}
+      - name: Random delay
+        run: |
+          # Random delay between 30 minutes and 4 hours
+          delay_minutes=$((RANDOM % 210 + 30))
+          echo "Waiting $delay_minutes minutes before creating PR..."
+          sleep $((delay_minutes * 60))
       - name: Make dummy change
         run: |
           echo "Update at $(date)" >> DUMMY.md
@@ -30,7 +36,7 @@ jobs:
         with:
           token: ${{ github.token }}
           commit-message: "chore: auto update"
-          branch: ${{ github.ref_name }}
+          branch: $branch
           base: main
           title: "chore: auto update"
           body: "Automated PR to keep activity going"
