@@ -27,7 +27,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           commit-message: "chore: auto update $(date)"
           committer: le0623 <leonel.lasso210@gmail.com>
           author: le0623 <leonel.lasso210@gmail.com>

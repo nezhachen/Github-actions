@@ -11,6 +11,6 @@ jobs:
     steps:
       - uses: peter-evans/enable-pull-request-automerge@v3
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           pull-request-number: ${{ github.event.pull_request.number }}
           merge-method: squash
