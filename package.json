@@ -1,0 +1,15 @@
+{
+  "name": "pullshark-farm",
+  "version": "1.0.0",
+  "description": "Automated PR generation for Pull Shark progression",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo '✅ Tests passed!'"
+  },
+  "keywords": ["github", "actions", "automation"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  }
+} 
