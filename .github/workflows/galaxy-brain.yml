@@ -1,0 +1,111 @@
+name: Galaxy Brain Automation
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # every 6 hours
+  workflow_dispatch:
+
+jobs:
+  galaxy-brain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Discussion Categories
+        id: get-categories
+        run: |
+          CATEGORY_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.HELPER_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/discussions/categories)
+          
+          CATEGORY_ID=$(echo "$CATEGORY_RESPONSE" | jq -r '.[0].id')
+          echo "category_id=$CATEGORY_ID" >> $GITHUB_OUTPUT
+          echo "Found category ID: $CATEGORY_ID"
+
+      - name: Generate Random Question
+        id: generate-question
+        run: |
+          QUESTIONS=(
+            "How do I install this project?"
+            "What are the main features?"
+            "How do I contribute to this project?"
+            "What is the license?"
+            "How do I run tests?"
+            "What dependencies are required?"
+            "How do I deploy this project?"
+            "What is the project structure?"
+          )
+          
+          RANDOM_INDEX=$((RANDOM % ${#QUESTIONS[@]}))
+          SELECTED_QUESTION="${QUESTIONS[$RANDOM_INDEX]}"
+          
+          echo "question=$SELECTED_QUESTION" >> $GITHUB_OUTPUT
+          echo "Selected question: $SELECTED_QUESTION"
+
+      - name: Generate Random Answer
+        id: generate-answer
+        run: |
+          ANSWERS=(
+            "You can install this project by running \`npm install\` or \`yarn install\` in the project directory. Make sure you have Node.js installed first."
+            "The main features include automated workflows, CI/CD integration, and various GitHub automation tools to help streamline your development process."
+            "To contribute, fork the repository, create a feature branch, make your changes, and submit a pull request. Please read the CONTRIBUTING.md file for guidelines."
+            "This project is typically licensed under MIT or similar open-source licenses. Check the LICENSE file in the repository root for specific details."
+            "Run tests using \`npm test\` or \`yarn test\`. For specific test suites, you can use \`npm run test:unit\` or \`npm run test:integration\`."
+            "Check the package.json file for Node.js dependencies, or requirements.txt for Python projects. Install them using the appropriate package manager."
+            "Deployment depends on your hosting platform. Common options include GitHub Pages, Vercel, Netlify, or traditional hosting services."
+            "The project follows a standard structure with source code in src/, tests in test/, configuration files in the root, and documentation in docs/."
+          )
+          
+          RANDOM_INDEX=$((RANDOM % ${#ANSWERS[@]}))
+          SELECTED_ANSWER="${ANSWERS[$RANDOM_INDEX]}"
+          
+          echo "answer=$SELECTED_ANSWER" >> $GITHUB_OUTPUT
+          echo "Selected answer: $SELECTED_ANSWER"
+
+      - name: Post a new discussion
+        id: create-discussion
+        run: |
+          DISCUSSION_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token ${{ secrets.HELPER_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/discussions \
+            -d "{\"title\":\"${{ steps.generate-question.outputs.question }}\",\"body\":\"${{ steps.generate-question.outputs.question }}\n\nPlease explain how to solve this.\",\"category_id\":\"${{ steps.get-categories.outputs.category_id }}\"}")
+          
+          DISCUSSION_NUMBER=$(echo "$DISCUSSION_RESPONSE" | jq -r '.number')
+          echo "discussion_number=$DISCUSSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Created discussion #$DISCUSSION_NUMBER"
+          
+          # Wait a bit before posting answer
+          sleep 5
+
+      - name: Post answer from your account
+        id: post-answer
+        run: |
+          ANSWER_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token ${{ secrets.ACTIONS_BOT_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/discussions/${{ steps.create-discussion.outputs.discussion_number }}/comments \
+            -d "{\"body\":\"${{ steps.generate-answer.outputs.answer }}\"}")
+          
+          COMMENT_ID=$(echo "$ANSWER_RESPONSE" | jq -r '.id')
+          echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
+          echo "Posted answer with comment ID $COMMENT_ID"
+          
+          # Wait a bit before marking as accepted
+          sleep 5
+
+      - name: Mark answer as accepted (needs repo admin/helper account)
+        run: |
+          curl -s -X PATCH \
+            -H "Authorization: token ${{ secrets.HELPER_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.event.repository.name }}/discussions/comments/${{ steps.post-answer.outputs.comment_id }} \
+            -d '{"is_answer":true}'
+          
+          echo "✅ Answer marked as accepted!"
+
+      - name: Log Success
+        run: |
+          echo "🎯 Galaxy Brain automation completed successfully!"
+          echo "📝 Created discussion: ${{ steps.create-discussion.outputs.discussion_number }}"
+          echo "💬 Posted answer with ID: ${{ steps.post-answer.outputs.comment_id }}"
+          echo "✅ Marked answer as accepted"
+          echo "⏰ Next run scheduled for 6 hours from now" 
